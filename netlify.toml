@@ -2,5 +2,9 @@
   command = "npm run build"
   publish = ".next"
 
+# NEXT_PUBLIC_* sont volontairement exposés côté client — évite les faux positifs du scan Netlify
+[build.environment]
+  SECRETS_SCAN_OMIT_KEYS = "NEXT_PUBLIC_SUPABASE_URL,NEXT_PUBLIC_SUPABASE_ANON_KEY,SUPER_ADMIN_USERNAME"
+
 [[plugins]]
   package = "@netlify/plugin-nextjs"
