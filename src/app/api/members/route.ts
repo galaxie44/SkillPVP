@@ -367,13 +367,22 @@ export async function PATCH(request: Request) {
       );
     }
     const newPass = generatePassword();
-    await supabase
+    const { error: resetError } = await supabase
       .from("users")
       .update({
         password_hash: await hashPassword(newPass),
         must_change_password: true,
       })
       .eq("id", existingMember.user_id);
+
+    if (resetError) {
+      console.error("Reset password error:", resetError);
+      return NextResponse.json(
+        { error: "Échec de la réinitialisation du mot de passe" },
+        { status: 500 }
+      );
+    }
+
     plainPassword = newPass;
     const { data: linkedUser } = await supabase
       .from("users")

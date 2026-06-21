@@ -1,6 +1,7 @@
 import { SignJWT, jwtVerify } from "jose";
 import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
+import { NextResponse } from "next/server";
 import { cache } from "react";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type {
@@ -10,8 +11,26 @@ import type {
   User,
 } from "@/types";
 
-const COOKIE_NAME = "skillpvp_session";
+export const SESSION_COOKIE_NAME = "skillpvp_session";
 const SALT_ROUNDS = 12;
+
+export const SESSION_COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "lax" as const,
+  maxAge: 60 * 60 * 24 * 7,
+  path: "/",
+};
+
+export function attachSessionCookie(response: NextResponse, token: string) {
+  response.cookies.set(SESSION_COOKIE_NAME, token, SESSION_COOKIE_OPTIONS);
+  return response;
+}
+
+export function clearSessionCookieOnResponse(response: NextResponse) {
+  response.cookies.delete(SESSION_COOKIE_NAME);
+  return response;
+}
 
 function getSecret() {
   const secret = process.env.AUTH_SECRET;
@@ -59,25 +78,9 @@ export async function verifySessionToken(
   }
 }
 
-export async function setSessionCookie(token: string) {
-  const cookieStore = await cookies();
-  cookieStore.set(COOKIE_NAME, token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    maxAge: 60 * 60 * 24 * 7,
-    path: "/",
-  });
-}
-
-export async function clearSessionCookie() {
-  const cookieStore = await cookies();
-  cookieStore.delete(COOKIE_NAME);
-}
-
 export async function getSessionToken(): Promise<string | undefined> {
   const cookieStore = await cookies();
-  return cookieStore.get(COOKIE_NAME)?.value;
+  return cookieStore.get(SESSION_COOKIE_NAME)?.value;
 }
 
 async function getMemberWithRelations(
@@ -170,12 +173,22 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
 export async function loginUser(
   username: string,
   password: string
-): Promise<{ success: boolean; error?: string; user?: SessionUser }> {
+): Promise<{
+  success: boolean;
+  error?: string;
+  user?: SessionUser;
+  token?: string;
+}> {
+  const normalizedUsername = username.trim();
+  if (!normalizedUsername) {
+    return { success: false, error: "Identifiants invalides" };
+  }
+
   const supabase = createAdminClient();
   const { data: user } = await supabase
     .from("users")
     .select("*")
-    .eq("username", username)
+    .ilike("username", normalizedUsername)
     .eq("is_active", true)
     .maybeSingle();
 
@@ -192,13 +205,13 @@ export async function loginUser(
     mustChangePassword:
       user.must_change_password && !user.is_super_admin,
   });
-  await setSessionCookie(token);
 
   const member = await getMemberWithRelations(user.id);
   const permissions = await getPermissionsForUser(user as User, member);
 
   return {
     success: true,
+    token,
     user: {
       id: user.id,
       username: user.username,
@@ -209,10 +222,6 @@ export async function loginUser(
       permissions,
     },
   };
-}
-
-export async function logoutUser() {
-  await clearSessionCookie();
 }
 
 export async function bootstrapSuperAdmin(): Promise<void> {

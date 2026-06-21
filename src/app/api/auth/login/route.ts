@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { bootstrapSuperAdmin, loginUser } from "@/lib/auth";
+import { bootstrapSuperAdmin, loginUser, attachSessionCookie } from "@/lib/auth";
 import { z } from "zod";
 
 const loginSchema = z.object({
@@ -23,7 +23,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: result.error }, { status: 401 });
     }
 
-    return NextResponse.json({ user: result.user });
+    const response = NextResponse.json({ user: result.user });
+    if (result.token) {
+      attachSessionCookie(response, result.token);
+    }
+    return response;
   } catch (error) {
     console.error("Login error:", error);
     return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });

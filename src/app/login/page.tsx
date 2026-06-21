@@ -19,6 +19,8 @@ export default function LoginPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (loading) return;
+
     setError("");
     setLoading(true);
 
@@ -28,13 +30,18 @@ export default function LoginPage() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
+        credentials: "same-origin",
+        body: JSON.stringify({
+          username: username.trim(),
+          password,
+        }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
         setError(data.error ?? "Erreur de connexion");
+        setLoading(false);
         return;
       }
 
@@ -46,7 +53,6 @@ export default function LoginPage() {
       router.refresh();
     } catch {
       setError("Erreur de connexion au serveur");
-    } finally {
       setLoading(false);
     }
   }
@@ -79,6 +85,7 @@ export default function LoginPage() {
                 onChange={(e) => setUsername(e.target.value)}
                 className="border-border bg-muted/30"
                 autoComplete="username"
+                disabled={loading}
                 required
               />
             </div>
@@ -91,6 +98,7 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 className="border-border bg-muted/30"
                 autoComplete="current-password"
+                disabled={loading}
                 required
               />
             </div>

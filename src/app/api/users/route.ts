@@ -6,7 +6,7 @@ import {
   requireSuperAdmin,
 } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { generatePassword } from "@/lib/utils";
+import { generatePassword, sanitizeUsername } from "@/lib/utils";
 import { logActivity } from "@/lib/activity";
 
 const createUserSchema = z.object({
@@ -69,7 +69,7 @@ export async function POST(request: Request) {
     const { data: user, error } = await supabase
       .from("users")
       .insert({
-        username: parsed.data.username,
+        username: sanitizeUsername(parsed.data.username),
         password_hash,
         is_super_admin: false,
         must_change_password: parsed.data.must_change_password ?? true,
@@ -144,6 +144,12 @@ export async function PATCH(request: Request) {
       .single();
 
     if (error) throw error;
+    if (!data) {
+      return NextResponse.json(
+        { error: "Utilisateur introuvable" },
+        { status: 404 }
+      );
+    }
 
     const response: Record<string, unknown> = { user: data };
     if (parsed.data.newPassword) {

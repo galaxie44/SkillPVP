@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { verifySessionToken } from "@/lib/auth";
+import { verifySessionToken, SESSION_COOKIE_NAME } from "@/lib/auth";
 
 const publicPaths = ["/login", "/api/auth/login", "/api/auth/bootstrap"];
 const passwordChangePaths = ["/profile", "/api/profile"];
@@ -16,7 +16,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const token = request.cookies.get("skillpvp_session")?.value;
+  const token = request.cookies.get(SESSION_COOKIE_NAME)?.value;
 
   if (!token) {
     if (pathname.startsWith("/api/")) {
@@ -31,7 +31,7 @@ export async function middleware(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     const response = NextResponse.redirect(new URL("/login", request.url));
-    response.cookies.delete("skillpvp_session");
+    response.cookies.delete(SESSION_COOKIE_NAME);
     return response;
   }
 

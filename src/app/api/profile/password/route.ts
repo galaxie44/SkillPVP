@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getSessionUser, hashPassword, verifyPassword, createSessionToken, setSessionCookie } from "@/lib/auth";
+import { getSessionUser, hashPassword, verifyPassword, createSessionToken, attachSessionCookie } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 const changePasswordSchema = z.object({
@@ -53,7 +53,8 @@ export async function POST(request: Request) {
   const newToken = await createSessionToken(user.id, {
     mustChangePassword: false,
   });
-  await setSessionCookie(newToken);
 
-  return NextResponse.json({ success: true });
+  const response = NextResponse.json({ success: true });
+  attachSessionCookie(response, newToken);
+  return response;
 }
