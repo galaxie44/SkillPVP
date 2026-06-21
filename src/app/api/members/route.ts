@@ -1,3 +1,4 @@
+import { revalidateTag } from "next/cache";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getSessionUser, hashPassword } from "@/lib/auth";
@@ -12,10 +13,22 @@ import { sanitizeUsername, generatePassword } from "@/lib/utils";
 const createMemberSchema = z.object({
   faction_id: z.string().uuid(),
   minecraft_pseudo: z.string().min(2).max(16),
-  role_id: z.string().uuid(),
+  role_id: z
+    .preprocess((val) => (val === "" ? undefined : val), z.string().uuid().optional()),
   metier_id: z.string().uuid().nullable().optional(),
   metier_level: z.number().int().min(1).max(100).optional(),
 });
+
+function validationError(parsed: z.SafeParseError<unknown>) {
+  const issue = parsed.error.issues[0];
+  if (issue?.path[0] === "role_id") {
+    return "Sélectionne un rôle valide pour cette faction";
+  }
+  if (issue?.path[0] === "minecraft_pseudo") {
+    return "Le pseudo Minecraft doit faire entre 2 et 16 caractères";
+  }
+  return issue?.message ?? "Données invalides";
+}
 
 const updateMemberSchema = z.object({
   id: z.string().uuid(),
@@ -131,7 +144,24 @@ export async function POST(request: Request) {
   const parsed = createMemberSchema.safeParse(body);
 
   if (!parsed.success) {
-    return NextResponse.json({ error: "Données invalides" }, { status: 400 });
+    return NextResponse.json(
+      { error: validationError(parsed) },
+      { status: 400 }
+    );
+  }
+
+  const supabase = createAdminClient();
+  const resolvedRoleId = await resolveRoleForFaction(
+    supabase,
+    parsed.data.faction_id,
+    parsed.data.role_id
+  );
+
+  if (!resolvedRoleId) {
+    return NextResponse.json(
+      { error: "Aucun rôle disponible pour cette faction" },
+      { status: 400 }
+    );
   }
 
   const username = sanitizeUsername(parsed.data.minecraft_pseudo);
@@ -156,13 +186,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Erreur création compte" }, { status: 500 });
   }
 
-  const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("faction_members")
     .insert({
       faction_id: parsed.data.faction_id,
       minecraft_pseudo: parsed.data.minecraft_pseudo,
-      role_id: parsed.data.role_id,
+      role_id: resolvedRoleId,
       metier_id: parsed.data.metier_id ?? null,
       metier_level: parsed.data.metier_level ?? 1,
       user_id: createdUser.id,
@@ -201,6 +230,9 @@ export async function POST(request: Request) {
     details: { username: createdUser.username },
   });
 
+  revalidateTag("members");
+  revalidateTag("activities");
+
   return NextResponse.json({
     ...data,
     plainPassword,
@@ -218,7 +250,10 @@ export async function PATCH(request: Request) {
   const parsed = updateMemberSchema.safeParse(body);
 
   if (!parsed.success) {
-    return NextResponse.json({ error: "Données invalides" }, { status: 400 });
+    return NextResponse.json(
+      { error: validationError(parsed) },
+      { status: 400 }
+    );
   }
 
   const needsEdit =
@@ -448,6 +483,9 @@ export async function PATCH(request: Request) {
     });
   }
 
+  revalidateTag("members");
+  revalidateTag("activities");
+
   return NextResponse.json({
     ...data,
     ...(plainPassword
@@ -516,6 +554,9 @@ export async function DELETE(request: Request) {
       message: `${user.username} a retiré ${toDelete.minecraft_pseudo} (${faction?.name ?? ""})`,
     });
   }
+
+  revalidateTag("members");
+  revalidateTag("activities");
 
   return NextResponse.json({ success: true });
 }

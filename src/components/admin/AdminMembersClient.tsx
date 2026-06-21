@@ -60,6 +60,8 @@ export function AdminMembersClient({
       ? allMembers.filter((m) => m.faction_id === defaultFactionId)
       : allMembers;
   const [roles, setRoles] = useState<Role[]>([]);
+  const [rolesLoading, setRolesLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingMember, setEditingMember] = useState<FactionMemberWithRelations | null>(null);
   const [error, setError] = useState("");
@@ -87,9 +89,16 @@ export function AdminMembersClient({
   useEffect(() => {
     if (!form.faction_id) return;
 
+    setRolesLoading(true);
     fetch(`/api/roles?faction_id=${form.faction_id}`)
-      .then((res) => (res.ok ? res.json() : []))
-      .then((data: Role[]) => {
+      .then(async (res) => {
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error ?? "Impossible de charger les rôles");
+        }
+        return res.json() as Promise<Role[]>;
+      })
+      .then((data) => {
         setRoles(data);
         setForm((f) => {
           const roleStillValid = data.some((r) => r.id === f.role_id);
@@ -101,7 +110,12 @@ export function AdminMembersClient({
               : membre?.id ?? data[0]?.id ?? "",
           };
         });
-      });
+      })
+      .catch((err: Error) => {
+        setRoles([]);
+        setError(err.message);
+      })
+      .finally(() => setRolesLoading(false));
   }, [form.faction_id]);
 
   function updatePseudo(pseudo: string) {
@@ -110,8 +124,15 @@ export function AdminMembersClient({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (submitting) return;
+    if (!form.role_id) {
+      setError("Sélectionne un rôle avant d'ajouter le joueur");
+      return;
+    }
+
     setError("");
     setCredentials(null);
+    setSubmitting(true);
 
     const base = {
       faction_id: form.faction_id,
@@ -131,27 +152,31 @@ export function AdminMembersClient({
       body = { ...base };
     }
 
-    const res = await fetch("/api/members", {
-      method: editingId ? "PATCH" : "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-
-    const data = await res.json();
-    if (!res.ok) {
-      setError(data.error ?? "Erreur");
-      return;
-    }
-
-    if (data.plainPassword) {
-      setCredentials({
-        username: data.createdUsername ?? sanitizeUsername(form.minecraft_pseudo),
-        password: data.plainPassword,
+    try {
+      const res = await fetch("/api/members", {
+        method: editingId ? "PATCH" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
       });
-    }
 
-    resetForm();
-    await refreshMembers(true);
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? "Erreur");
+        return;
+      }
+
+      if (data.plainPassword) {
+        setCredentials({
+          username: data.createdUsername ?? sanitizeUsername(form.minecraft_pseudo),
+          password: data.plainPassword,
+        });
+      }
+
+      resetForm();
+      await refreshMembers(true);
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   function resetForm() {
@@ -313,12 +338,21 @@ export function AdminMembersClient({
                 <Label>Rôle</Label>
                 <Select
                   value={form.role_id}
+                  disabled={rolesLoading || roles.length === 0}
                   onValueChange={(v) =>
                     setForm((f) => ({ ...f, role_id: v }))
                   }
                 >
                   <SelectTrigger>
-                    <SelectValue />
+                    <SelectValue
+                      placeholder={
+                        rolesLoading
+                          ? "Chargement des rôles…"
+                          : roles.length === 0
+                            ? "Aucun rôle disponible"
+                            : "Choisir un rôle"
+                      }
+                    />
                   </SelectTrigger>
                   <SelectContent>
                     {roles.map((r) => (
@@ -351,8 +385,20 @@ export function AdminMembersClient({
             {error && <p className="text-sm text-destructive">{error}</p>}
 
             <div className="flex gap-2">
-              <Button type="submit">
-                {editingId ? "Enregistrer" : "Ajouter le joueur"}
+              <Button
+                type="submit"
+                disabled={
+                  submitting ||
+                  rolesLoading ||
+                  !form.role_id ||
+                  !form.minecraft_pseudo.trim()
+                }
+              >
+                {submitting
+                  ? "Enregistrement…"
+                  : editingId
+                    ? "Enregistrer"
+                    : "Ajouter le joueur"}
               </Button>
               {editingId && (
                 <Button type="button" variant="outline" onClick={resetForm}>
