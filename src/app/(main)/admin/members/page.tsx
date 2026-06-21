@@ -1,7 +1,19 @@
-import { AdminMembersClient } from "@/components/admin/AdminMembersClient";
+import dynamic from "next/dynamic";
 import { getSessionUser } from "@/lib/auth";
 import { hasPermission, getHomeRoute, isFactionAdmin } from "@/lib/permissions";
 import { redirect } from "next/navigation";
+
+const AdminMembersClient = dynamic(
+  () =>
+    import("@/components/admin/AdminMembersClient").then(
+      (m) => m.AdminMembersClient
+    ),
+  {
+    loading: () => (
+      <p className="py-12 text-center text-muted-foreground">Chargement…</p>
+    ),
+  }
+);
 
 export default async function AdminMembersPage() {
   const user = await getSessionUser();

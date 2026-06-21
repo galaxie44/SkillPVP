@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
-import { getFactions, getMetiers } from "@/lib/data";
-import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  getAllMembers,
+  getFactions,
+  getMetiers,
+  getRecentActivities,
+} from "@/lib/data";
 import {
   canViewFactionPage,
   hasPermission,
@@ -13,14 +17,6 @@ import {
   enrichObjectivesWithPending,
   canManageObjective,
 } from "@/lib/objectives";
-
-const memberSelect = `
-  *,
-  faction:factions(*),
-  role:roles(*),
-  metier:metiers(*),
-  user:users(id, username, is_active)
-`;
 
 export async function GET(request: Request) {
   const user = await getSessionUser();
@@ -51,23 +47,17 @@ export async function GET(request: Request) {
       hasPermission(user.permissions, "objectives.view", false);
 
     if (canView) {
-      const supabase = createAdminClient();
-      let query = supabase
-        .from("faction_members")
-        .select(memberSelect)
-        .order("minecraft_pseudo");
+      let members = await getAllMembers();
 
-      // Liste complète pour le cache global : le filtre par faction se fait côté UI.
-      // Sinon, visiter /factions/v1 ou v2 ne laisse que ces joueurs en mémoire
-      // (dashboard, admin joueurs, etc. affichent alors les mauvaises personnes).
       if (!user.is_super_admin && !canViewFactionPage(user)) {
         if (user.member?.faction_id) {
-          query = query.eq("faction_id", user.member.faction_id);
+          members = members.filter(
+            (m) => m.faction_id === user.member!.faction_id
+          );
         }
       }
 
-      const { data } = await query;
-      payload.members = data ?? [];
+      payload.members = members;
     } else {
       payload.members = [];
     }
@@ -78,17 +68,7 @@ export async function GET(request: Request) {
       user.is_super_admin ||
       hasPermission(user.permissions, "members.view", false);
 
-    if (canView) {
-      const supabase = createAdminClient();
-      const { data } = await supabase
-        .from("activity_log")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(50);
-      payload.activities = data ?? [];
-    } else {
-      payload.activities = [];
-    }
+    payload.activities = canView ? await getRecentActivities() : [];
   }
 
   if (wantsObjectives && factionSlug) {
@@ -123,6 +103,6 @@ export async function GET(request: Request) {
   }
 
   return NextResponse.json(payload, {
-    headers: { "Cache-Control": "private, max-age=30" },
+    headers: { "Cache-Control": "private, max-age=30, stale-while-revalidate=60" },
   });
 }

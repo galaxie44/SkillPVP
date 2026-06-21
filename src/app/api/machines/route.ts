@@ -31,6 +31,8 @@ export async function GET() {
       machines,
       ownerships,
       my_machines: myMachines,
+    }, {
+      headers: { "Cache-Control": "private, max-age=60, stale-while-revalidate=120" },
     });
   } catch (err) {
     return NextResponse.json(

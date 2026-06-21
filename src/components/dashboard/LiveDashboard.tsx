@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { FactionCard } from "@/components/dashboard/FactionCard";
+import dynamic from "next/dynamic";
 import { MetierTable } from "@/components/dashboard/MetierTable";
 import { LiveActivityFeed } from "@/components/dashboard/LiveActivityFeed";
 import { OnlineUsers } from "@/components/dashboard/OnlineUsers";
@@ -12,6 +12,17 @@ import { useAppData } from "@/contexts/AppDataContext";
 import type { SessionUser, ActivityLog } from "@/types";
 
 const EMPTY_ACTIVITIES: ActivityLog[] = [];
+
+const FactionCard = dynamic(
+  () =>
+    import("@/components/dashboard/FactionCard").then((m) => m.FactionCard),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="glass-card h-[120px] animate-pulse rounded-xl" />
+    ),
+  }
+);
 
 interface LiveDashboardProps {
   user: SessionUser;

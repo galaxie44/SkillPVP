@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createBrowserClient } from "@/lib/supabase/admin";
+import { getBrowserClient } from "@/lib/supabase/browser";
 
 export interface OnlineUser {
   user_id: string;
@@ -24,7 +24,7 @@ export function usePresence({ userId, username, page }: UsePresenceOptions) {
     const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
     if (!url || !key) return;
 
-    const supabase = createBrowserClient();
+    const supabase = getBrowserClient();
 
     const channel = supabase.channel("skillpvp-online", {
       config: { presence: { key: userId } },

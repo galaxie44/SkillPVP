@@ -31,7 +31,10 @@ export async function GET(request: Request) {
   const factionId = searchParams.get("faction_id");
 
   const supabase = createAdminClient();
-  let query = supabase.from("roles").select("*").order("name");
+  let query = supabase
+    .from("roles")
+    .select("*, role_permissions(permission_key)")
+    .order("name");
 
   if (factionId) {
     query = query.eq("faction_id", factionId);
@@ -44,19 +47,22 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  const result = [];
-  for (const role of roles ?? []) {
-    const { data: perms } = await supabase
-      .from("role_permissions")
-      .select("permission_key")
-      .eq("role_id", role.id);
-    result.push({
-      ...role,
-      permissions: perms?.map((p) => p.permission_key) ?? [],
-    });
-  }
+  const result = (roles ?? []).map((role) => {
+    const { role_permissions, ...rest } = role as typeof role & {
+      role_permissions: { permission_key: string }[];
+    };
+    return {
+      ...rest,
+      permissions:
+        role_permissions?.map(
+          (p: { permission_key: string }) => p.permission_key
+        ) ?? [],
+    };
+  });
 
-  return NextResponse.json(result);
+  return NextResponse.json(result, {
+    headers: { "Cache-Control": "private, max-age=120" },
+  });
 }
 
 export async function POST(request: Request) {

@@ -53,36 +53,22 @@ async function _getAllMembersUncached(): Promise<FactionMemberWithRelations[]> {
 }
 
 export async function getAllMembers(): Promise<FactionMemberWithRelations[]> {
-  return _getAllMembersUncached();
+  return unstable_cache(
+    async () => _getAllMembersUncached(),
+    ["all-members"],
+    { revalidate: 60, tags: ["members"] }
+  )();
 }
 
 export async function getFactionStats(
   slug: string
 ): Promise<FactionStats | null> {
-  const supabase = createAdminClient();
-  const { data: faction } = await supabase
-    .from("factions")
-    .select("*")
-    .eq("slug", slug)
-    .maybeSingle();
-
+  const factions = await getFactions();
+  const faction = factions.find((f) => f.slug === slug);
   if (!faction) return null;
 
-  const { data: members } = await supabase
-    .from("faction_members")
-    .select(
-      `
-      *,
-      faction:factions(*),
-      role:roles(*),
-      metier:metiers(*),
-      user:users(id, username, is_active)
-    `
-    )
-    .eq("faction_id", faction.id)
-    .order("minecraft_pseudo");
-
-  const memberList = (members as FactionMemberWithRelations[]) ?? [];
+  const allMembers = await getAllMembers();
+  const memberList = allMembers.filter((m) => m.faction_id === faction.id);
   const metierMap = new Map<string, { name: string; count: number; icon: string }>();
 
   for (const m of memberList) {
@@ -116,24 +102,24 @@ export async function getRolesByFaction(factionId: string) {
   const supabase = createAdminClient();
   const { data: roles } = await supabase
     .from("roles")
-    .select("*")
+    .select("*, role_permissions(permission_key)")
     .eq("faction_id", factionId)
     .order("name");
 
   if (!roles) return [];
 
-  const result = [];
-  for (const role of roles) {
-    const { data: perms } = await supabase
-      .from("role_permissions")
-      .select("permission_key")
-      .eq("role_id", role.id);
-    result.push({
-      ...role,
-      permissions: perms?.map((p) => p.permission_key) ?? [],
-    });
-  }
-  return result;
+  return roles.map((role) => {
+    const { role_permissions, ...rest } = role as typeof role & {
+      role_permissions: { permission_key: string }[];
+    };
+    return {
+      ...rest,
+      permissions:
+        role_permissions?.map(
+          (p: { permission_key: string }) => p.permission_key
+        ) ?? [],
+    };
+  });
 }
 
 export async function getAllUsers() {
@@ -146,16 +132,22 @@ export async function getAllUsers() {
 }
 
 export async function getRecentActivities() {
-  try {
-    const supabase = createAdminClient();
-    const { data, error } = await supabase
-      .from("activity_log")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(50);
-    if (error) return [];
-    return data ?? [];
-  } catch {
-    return [];
-  }
+  return unstable_cache(
+    async () => {
+      try {
+        const supabase = createAdminClient();
+        const { data, error } = await supabase
+          .from("activity_log")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .limit(50);
+        if (error) return [];
+        return data ?? [];
+      } catch {
+        return [];
+      }
+    },
+    ["recent-activities"],
+    { revalidate: 30, tags: ["activities"] }
+  )();
 }

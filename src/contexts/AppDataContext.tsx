@@ -12,7 +12,7 @@ import {
   type SetStateAction,
 } from "react";
 import { usePathname } from "next/navigation";
-import { createBrowserClient } from "@/lib/supabase/admin";
+import { getBrowserClient } from "@/lib/supabase/browser";
 import { debounce } from "@/lib/debounce";
 import type {
   ActivityLog,
@@ -72,10 +72,21 @@ interface AppDataContextValue {
 
 const AppDataContext = createContext<AppDataContextValue | null>(null);
 
-export function AppDataProvider({ children }: { children: React.ReactNode }) {
+interface AppDataProviderProps {
+  children: React.ReactNode;
+  initialFactions?: Faction[];
+  initialMetiers?: Metier[];
+}
+
+export function AppDataProvider({
+  children,
+  initialFactions = [],
+  initialMetiers = [],
+}: AppDataProviderProps) {
   const pathname = usePathname();
-  const [factions, setFactions] = useState<Faction[]>([]);
-  const [metiers, setMetiers] = useState<Metier[]>([]);
+  const hasInitialMeta = initialFactions.length > 0;
+  const [factions, setFactions] = useState<Faction[]>(initialFactions);
+  const [metiers, setMetiers] = useState<Metier[]>(initialMetiers);
   const [members, setMembers] = useState<FactionMemberWithRelations[] | null>(
     null
   );
@@ -87,11 +98,11 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
   const [objectivesFactionId, setObjectivesFactionId] = useState<string | null>(
     null
   );
-  const [metaLoading, setMetaLoading] = useState(true);
+  const [metaLoading, setMetaLoading] = useState(!hasInitialMeta);
   const [membersLoading, setMembersLoading] = useState(false);
   const [objectivesLoading, setObjectivesLoading] = useState(false);
   const [isLive, setIsLive] = useState(false);
-  const metaFetchedAt = useRef(0);
+  const metaFetchedAt = useRef(hasInitialMeta ? Date.now() : 0);
   const membersFetchedAt = useRef(0);
   const activitiesFetchedAt = useRef(0);
   const objectivesFetchedAt = useRef(0);
@@ -216,19 +227,30 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
         objectivesSlugRef.current !== factionSlug;
 
       const include: string[] = [];
-      if (needsMembers && (membersStale || metaStale)) include.push("members");
-      else if (metaStale) include.push("members");
+      if (needsMembers && membersStale) include.push("members");
       if (needsActivities && activitiesStale) include.push("activities");
       if (factionSlug && objectivesStale) include.push("objectives");
 
       if (include.length === 0) {
-        setMetaLoading(false);
+        if (metaStale) {
+          setMetaLoading(true);
+          const res = await fetch("/api/meta");
+          if (!cancelled && res.ok) {
+            const meta = await res.json();
+            setFactions(meta.factions ?? []);
+            setMetiers(meta.metiers ?? []);
+            metaFetchedAt.current = Date.now();
+          }
+          if (!cancelled) setMetaLoading(false);
+        } else {
+          setMetaLoading(false);
+        }
         return;
       }
 
       if (needsMembers && membersStale) setMembersLoading(true);
       if (factionSlug && objectivesStale) setObjectivesLoading(true);
-      setMetaLoading(metaStale);
+      if (metaStale) setMetaLoading(true);
 
       const params = new URLSearchParams({ include: include.join(",") });
       if (factionSlug) {
@@ -268,7 +290,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
     if (!url || !key) return;
 
-    const supabase = createBrowserClient();
+    const supabase = getBrowserClient();
     const channel = supabase
       .channel("app-live")
       .on(

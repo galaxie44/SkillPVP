@@ -23,7 +23,7 @@ import {
   getMachineIcon,
   groupMachinesByCategory,
 } from "@/lib/machines";
-import { buildMachineRegistry } from "@/lib/machines-data";
+import { buildMachineRegistry } from "@/lib/machines-registry";
 import { cn } from "@/lib/utils";
 import type { Machine, MemberMachine, SessionUser } from "@/types";
 

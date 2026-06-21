@@ -26,7 +26,7 @@ import {
   getObjectiveLabel,
   isMetierLevelObjective,
   canManageObjective,
-} from "@/lib/objectives";
+} from "@/lib/objectives-client";
 import { formatQuantityWithChests } from "@/lib/minecraft";
 import { useConfirm } from "@/contexts/ConfirmContext";
 import { useToast } from "@/contexts/ToastContext";

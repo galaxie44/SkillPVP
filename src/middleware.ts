@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { verifySessionToken, SESSION_COOKIE_NAME } from "@/lib/auth";
+import { verifySessionToken, SESSION_COOKIE_NAME } from "@/lib/auth-session";
 
 const publicPaths = ["/login", "/api/auth/login", "/api/auth/bootstrap"];
 const passwordChangePaths = ["/profile", "/api/profile"];

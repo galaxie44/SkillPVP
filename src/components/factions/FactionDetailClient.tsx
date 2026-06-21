@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { MetierTable } from "@/components/dashboard/MetierTable";
 import { TacheCardPicker } from "@/components/metiers/TacheCardPicker";
-import { ObjectivesPanel } from "@/components/objectives/ObjectivesPanel";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -34,6 +33,18 @@ const FactionCard = dynamic(
   () =>
     import("@/components/dashboard/FactionCard").then((m) => m.FactionCard),
   { ssr: false, loading: () => null }
+);
+
+const ObjectivesPanel = dynamic(
+  () =>
+    import("@/components/objectives/ObjectivesPanel").then(
+      (m) => m.ObjectivesPanel
+    ),
+  {
+    loading: () => (
+      <div className="glass-card h-40 animate-pulse rounded-xl" />
+    ),
+  }
 );
 
 interface FactionDetailClientProps {
