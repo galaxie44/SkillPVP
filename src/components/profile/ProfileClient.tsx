@@ -1,8 +1,7 @@
 "use client";
 
-import { useRef, useState, useEffect } from "react";
+import { useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Camera, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,14 +13,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { UserAvatar } from "@/components/ui/user-avatar";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { TacheCardPicker } from "@/components/metiers/TacheCardPicker";
 import { useAppData } from "@/contexts/AppDataContext";
 import { useToast } from "@/contexts/ToastContext";
-import {
-  formatCooldown,
-} from "@/lib/metiers";
+import { formatCooldown } from "@/lib/metiers";
 import { useTacheCooldown } from "@/hooks/useTacheCooldown";
 import type { SessionUser } from "@/types";
 
@@ -33,7 +29,6 @@ export function ProfileClient({ user: initialUser }: ProfileClientProps) {
   const searchParams = useSearchParams();
   const { metiers } = useAppData();
   const forceChange = searchParams.get("changePassword") === "1";
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { toast } = useToast();
   const [user, setUser] = useState(initialUser);
@@ -47,7 +42,6 @@ export function ProfileClient({ user: initialUser }: ProfileClientProps) {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
-  const [avatarLoading, setAvatarLoading] = useState(false);
 
   async function handleMetierSelect(metierId: string | null) {
     if (!user.member) return;
@@ -91,44 +85,6 @@ export function ProfileClient({ user: initialUser }: ProfileClientProps) {
     toast({ message: "Tâche mise à jour", variant: "success" });
   }
 
-  async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setAvatarLoading(true);
-    setError("");
-
-    const formData = new FormData();
-    formData.append("avatar", file);
-
-    const res = await fetch("/api/profile/avatar", {
-      method: "POST",
-      body: formData,
-    });
-
-    const data = await res.json();
-    setAvatarLoading(false);
-
-    if (!res.ok) {
-      setError(data.error ?? "Erreur upload");
-      return;
-    }
-
-    setUser((u) => ({ ...u, avatar_url: data.avatar_url }));
-    setMessage("Photo de profil mise à jour");
-  }
-
-  async function handleRemoveAvatar() {
-    setAvatarLoading(true);
-    const res = await fetch("/api/profile/avatar", { method: "DELETE" });
-    setAvatarLoading(false);
-
-    if (res.ok) {
-      setUser((u) => ({ ...u, avatar_url: null }));
-      setMessage("Photo supprimée");
-    }
-  }
-
   async function handleChangePassword(e: React.FormEvent) {
     e.preventDefault();
     setError("");
@@ -164,49 +120,7 @@ export function ProfileClient({ user: initialUser }: ProfileClientProps) {
           <CardTitle>Mon profil</CardTitle>
           <CardDescription>{user.username}</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
-            <div className="relative">
-              <UserAvatar
-                username={user.username}
-                avatarUrl={user.avatar_url}
-                size="lg"
-              />
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={avatarLoading}
-                className="absolute bottom-0 right-0 flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md hover:bg-primary/90"
-              >
-                <Camera className="h-4 w-4" />
-              </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/jpeg,image/png,image/webp,image/gif"
-                className="hidden"
-                onChange={handleAvatarChange}
-              />
-            </div>
-            <div className="flex-1 space-y-2 text-center sm:text-left">
-              <p className="text-sm text-muted-foreground">
-                Clique sur l&apos;icône appareil photo pour changer ta photo de profil (max 2 Mo).
-              </p>
-              {user.avatar_url && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleRemoveAvatar}
-                  disabled={avatarLoading}
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Supprimer la photo
-                </Button>
-              )}
-            </div>
-          </div>
-
+        <CardContent className="space-y-4">
           {user.member && (
             <div className="space-y-2 rounded-md bg-muted/50 p-4 text-sm">
               <p>

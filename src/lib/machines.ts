@@ -12,6 +12,9 @@ import {
   Factory,
   Skull,
   Cog,
+  Droplet,
+  Search,
+  Recycle,
   type LucideIcon,
 } from "lucide-react";
 import type { Machine } from "@/types";
@@ -30,9 +33,13 @@ export const MACHINE_ICONS: Record<string, LucideIcon> = {
   factory: Factory,
   skull: Skull,
   cog: Cog,
+  droplet: Droplet,
+  search: Search,
+  recycle: Recycle,
 };
 
 export const MACHINE_CATEGORIES = [
+  "Machines",
   "Ressources",
   "Production",
   "Énergie",

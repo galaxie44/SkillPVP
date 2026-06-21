@@ -6,30 +6,16 @@ import { hasPermission } from "@/lib/permissions";
 import { logActivity } from "@/lib/activity";
 import {
   createFactionUser,
-  resolveMemberPassword,
 } from "@/lib/users";
 import { sanitizeUsername, generatePassword } from "@/lib/utils";
 
-const accountFields = {
-  username: z.string().min(3).max(32),
-  password: z.string().min(6).optional(),
-  generatePassword: z.boolean().optional(),
-};
-
-const createMemberSchema = z
-  .object({
-    faction_id: z.string().uuid(),
-    minecraft_pseudo: z.string().min(2).max(16),
-    role_id: z.string().uuid(),
-    metier_id: z.string().uuid().nullable().optional(),
-    metier_level: z.number().int().min(1).max(100).optional(),
-    notes: z.string().nullable().optional(),
-    ...accountFields,
-  })
-  .refine(
-    (data) => data.password || data.generatePassword,
-    { message: "Mot de passe ou génération requis" }
-  );
+const createMemberSchema = z.object({
+  faction_id: z.string().uuid(),
+  minecraft_pseudo: z.string().min(2).max(16),
+  role_id: z.string().uuid(),
+  metier_id: z.string().uuid().nullable().optional(),
+  metier_level: z.number().int().min(1).max(100).optional(),
+});
 
 const updateMemberSchema = z.object({
   id: z.string().uuid(),
@@ -38,11 +24,7 @@ const updateMemberSchema = z.object({
   role_id: z.string().uuid().optional(),
   metier_id: z.string().uuid().nullable().optional(),
   metier_level: z.number().int().min(1).max(100).optional(),
-  notes: z.string().nullable().optional(),
   create_account: z.boolean().optional(),
-  username: z.string().min(3).max(32).optional(),
-  password: z.string().min(6).optional(),
-  generatePassword: z.boolean().optional(),
   reset_password: z.boolean().optional(),
   user_is_active: z.boolean().optional(),
 });
@@ -52,7 +34,7 @@ const memberSelect = `
   faction:factions(*),
   role:roles(*),
   metier:metiers(*),
-  user:users(id, username, is_active, avatar_url)
+  user:users(id, username, is_active)
 `;
 
 async function checkMemberPermission(
@@ -152,19 +134,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Données invalides" }, { status: 400 });
   }
 
-  const plainPassword = resolveMemberPassword(
-    parsed.data.password,
-    parsed.data.generatePassword
-  );
-
-  if (!plainPassword) {
-    return NextResponse.json(
-      { error: "Mot de passe requis" },
-      { status: 400 }
-    );
-  }
-
-  const username = sanitizeUsername(parsed.data.username);
+  const username = sanitizeUsername(parsed.data.minecraft_pseudo);
+  const plainPassword = generatePassword();
   let createdUser: { id: string; username: string };
 
   try {
@@ -194,7 +165,6 @@ export async function POST(request: Request) {
       role_id: parsed.data.role_id,
       metier_id: parsed.data.metier_id ?? null,
       metier_level: parsed.data.metier_level ?? 1,
-      notes: parsed.data.notes ?? null,
       user_id: createdUser.id,
     })
     .select(memberSelect)
@@ -254,7 +224,6 @@ export async function PATCH(request: Request) {
   const needsEdit =
     parsed.data.minecraft_pseudo !== undefined ||
     parsed.data.role_id !== undefined ||
-    parsed.data.notes !== undefined ||
     parsed.data.faction_id !== undefined;
 
   const needsAssign =
@@ -312,28 +281,14 @@ export async function PATCH(request: Request) {
       );
     }
 
-    if (!parsed.data.username) {
-      return NextResponse.json(
-        { error: "Nom d'utilisateur requis" },
-        { status: 400 }
-      );
-    }
-
-    const resolved = resolveMemberPassword(
-      parsed.data.password,
-      parsed.data.generatePassword
+    const username = sanitizeUsername(
+      parsed.data.minecraft_pseudo ?? existingMember.minecraft_pseudo
     );
-
-    if (!resolved) {
-      return NextResponse.json(
-        { error: "Mot de passe requis" },
-        { status: 400 }
-      );
-    }
+    const resolved = generatePassword();
 
     try {
       const createdUser = await createFactionUser({
-        username: sanitizeUsername(parsed.data.username),
+        username,
         password: resolved,
         createdBy: user.id,
         mustChangePassword: true,
@@ -408,9 +363,6 @@ export async function PATCH(request: Request) {
   const {
     id,
     create_account,
-    username,
-    password,
-    generatePassword: genPw,
     reset_password,
     user_is_active,
     faction_id: newFactionId,

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Search } from "lucide-react";
+import { Minus, Plus, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
@@ -35,9 +35,11 @@ export function MachinesClient({ user }: MachinesClientProps) {
   const { toast } = useToast();
   const [machines, setMachines] = useState<Machine[]>([]);
   const [ownerships, setOwnerships] = useState<MemberMachine[]>([]);
-  const [myIds, setMyIds] = useState<Set<string>>(new Set());
+  const [myQuantities, setMyQuantities] = useState<Map<string, number>>(
+    new Map()
+  );
   const [loading, setLoading] = useState(true);
-  const [toggling, setToggling] = useState<string | null>(null);
+  const [updating, setUpdating] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [factionFilter, setFactionFilter] = useState("all");
   const [machineFilter, setMachineFilter] = useState("all");
@@ -48,7 +50,11 @@ export function MachinesClient({ user }: MachinesClientProps) {
       const data = await res.json();
       setMachines(data.machines ?? []);
       setOwnerships(data.ownerships ?? []);
-      setMyIds(new Set(data.my_machine_ids ?? []));
+      const qtyMap = new Map<string, number>();
+      for (const row of data.my_machines ?? []) {
+        qtyMap.set(row.machine_id, row.quantity);
+      }
+      setMyQuantities(qtyMap);
     }
     setLoading(false);
   }, []);
@@ -57,34 +63,52 @@ export function MachinesClient({ user }: MachinesClientProps) {
     load();
   }, [load]);
 
-  async function toggleMachine(machineId: string) {
+  async function setMachineOwnership(
+    machineId: string,
+    owned: boolean,
+    quantity = 1
+  ) {
     if (!user.member) return;
-    const owned = myIds.has(machineId);
-    setToggling(machineId);
+    setUpdating(machineId);
 
     const res = await fetch("/api/machines/ownership", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ machine_id: machineId, owned: !owned }),
+      body: JSON.stringify({
+        machine_id: machineId,
+        owned,
+        quantity,
+      }),
     });
 
-    setToggling(null);
+    setUpdating(null);
     if (res.ok) {
-      setMyIds((prev) => {
-        const next = new Set(prev);
-        if (owned) next.delete(machineId);
-        else next.add(machineId);
+      setMyQuantities((prev) => {
+        const next = new Map(prev);
+        if (owned) next.set(machineId, quantity);
+        else next.delete(machineId);
         return next;
       });
       await load();
       toast({
-        message: owned ? "Machine retirée" : "Machine déclarée",
+        message: owned ? "Machine mise à jour" : "Machine retirée",
         variant: "success",
       });
     } else {
       const data = await res.json();
       toast({ message: data.error ?? "Erreur", variant: "error" });
     }
+  }
+
+  function changeQuantity(machineId: string, delta: number) {
+    const current = myQuantities.get(machineId) ?? 0;
+    const next = current + delta;
+    if (next <= 0) {
+      setMachineOwnership(machineId, false);
+      return;
+    }
+    if (next > 99) return;
+    setMachineOwnership(machineId, true, next);
   }
 
   const registry = useMemo(
@@ -135,7 +159,7 @@ export function MachinesClient({ user }: MachinesClientProps) {
           <CardHeader>
             <CardTitle>Mes machines</CardTitle>
             <CardDescription>
-              Clique pour déclarer ou retirer une machine que tu possèdes
+              Indique quelles machines tu possèdes et en quelle quantité
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -147,47 +171,85 @@ export function MachinesClient({ user }: MachinesClientProps) {
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
                   {items.map((machine) => {
                     const Icon = getMachineIcon(machine.icon);
-                    const owned = myIds.has(machine.id);
-                    const busy = toggling === machine.id;
+                    const quantity = myQuantities.get(machine.id) ?? 0;
+                    const owned = quantity > 0;
+                    const busy = updating === machine.id;
 
                     return (
-                      <button
+                      <div
                         key={machine.id}
-                        type="button"
-                        disabled={busy}
-                        onClick={() => toggleMachine(machine.id)}
                         title={machine.description ?? machine.name}
                         className={cn(
                           "flex flex-col items-center gap-2 rounded-xl border-2 p-3 text-center transition-all",
-                          "hover:border-primary/40 hover:bg-accent/50",
                           owned
                             ? "border-primary bg-primary/10 shadow-sm"
-                            : "border-border bg-card/50",
-                          busy && "pointer-events-none opacity-50"
+                            : "border-border bg-card/50"
                         )}
                       >
-                        <div
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() => {
+                            if (!owned) setMachineOwnership(machine.id, true, 1);
+                          }}
                           className={cn(
-                            "flex h-9 w-9 items-center justify-center rounded-lg",
-                            owned ? "bg-primary/20" : "bg-muted"
+                            "flex w-full flex-col items-center gap-2",
+                            owned ? "cursor-default" : "hover:opacity-80"
                           )}
                         >
-                          <Icon
+                          <div
                             className={cn(
-                              "h-4 w-4",
-                              owned ? "text-primary" : "text-muted-foreground"
+                              "flex h-9 w-9 items-center justify-center rounded-lg",
+                              owned ? "bg-primary/20" : "bg-muted"
                             )}
-                          />
-                        </div>
-                        <span
-                          className={cn(
-                            "text-xs font-semibold leading-tight",
-                            owned ? "text-primary" : "text-foreground"
-                          )}
-                        >
-                          {machine.name}
-                        </span>
-                      </button>
+                          >
+                            <Icon
+                              className={cn(
+                                "h-4 w-4",
+                                owned ? "text-primary" : "text-muted-foreground"
+                              )}
+                            />
+                          </div>
+                          <span
+                            className={cn(
+                              "text-xs font-semibold leading-tight",
+                              owned ? "text-primary" : "text-foreground"
+                            )}
+                          >
+                            {machine.name}
+                          </span>
+                        </button>
+
+                        {owned ? (
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              disabled={busy}
+                              onClick={() => changeQuantity(machine.id, -1)}
+                              className="flex h-7 w-7 items-center justify-center rounded-md border border-border bg-background hover:bg-accent"
+                              aria-label="Diminuer la quantité"
+                            >
+                              <Minus className="h-3 w-3" />
+                            </button>
+                            <span className="min-w-[2rem] text-center text-sm font-semibold tabular-nums">
+                              {quantity}
+                            </span>
+                            <button
+                              type="button"
+                              disabled={busy || quantity >= 99}
+                              onClick={() => changeQuantity(machine.id, 1)}
+                              className="flex h-7 w-7 items-center justify-center rounded-md border border-border bg-background hover:bg-accent disabled:opacity-40"
+                              aria-label="Augmenter la quantité"
+                            >
+                              <Plus className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="text-[10px] text-muted-foreground">
+                            Cliquer pour ajouter
+                          </span>
+                        )}
+                      </div>
                     );
                   })}
                 </div>
@@ -276,7 +338,7 @@ export function MachinesClient({ user }: MachinesClientProps) {
                         >
                           <Icon className="h-3 w-3" />
                           {machine.name}
-                          {quantity > 1 && ` ×${quantity}`}
+                          <span className="text-muted-foreground">×{quantity}</span>
                         </Badge>
                       );
                     })}

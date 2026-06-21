@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Pencil, Trash2, Key, Copy, Check, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Card,
   CardContent,
@@ -73,16 +72,10 @@ export function AdminMembersClient({
   const [form, setForm] = useState({
     faction_id: "",
     minecraft_pseudo: "",
-    username: "",
-    password: "",
-    generatePassword: true,
     role_id: "",
     metier_id: "",
-    notes: "",
     createAccount: false,
   });
-
-  const usernameTouched = useRef(false);
 
   useEffect(() => {
     if (factions.length > 0 && !form.faction_id) {
@@ -112,13 +105,7 @@ export function AdminMembersClient({
   }, [form.faction_id]);
 
   function updatePseudo(pseudo: string) {
-    setForm((f) => ({
-      ...f,
-      minecraft_pseudo: pseudo,
-      username: usernameTouched.current
-        ? f.username
-        : sanitizeUsername(pseudo),
-    }));
+    setForm((f) => ({ ...f, minecraft_pseudo: pseudo }));
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -131,7 +118,6 @@ export function AdminMembersClient({
       minecraft_pseudo: form.minecraft_pseudo,
       role_id: form.role_id,
       metier_id: form.metier_id || null,
-      notes: form.notes || null,
     };
 
     let body: Record<string, unknown>;
@@ -140,22 +126,9 @@ export function AdminMembersClient({
       body = { id: editingId, ...base };
       if (form.createAccount && !editingMember?.user_id) {
         body.create_account = true;
-        body.username = form.username;
-        if (form.generatePassword) {
-          body.generatePassword = true;
-        } else {
-          body.password = form.password;
-        }
       }
     } else {
-      body = {
-        ...base,
-        username: form.username,
-        generatePassword: form.generatePassword,
-      };
-      if (!form.generatePassword) {
-        body.password = form.password;
-      }
+      body = { ...base };
     }
 
     const res = await fetch("/api/members", {
@@ -172,7 +145,7 @@ export function AdminMembersClient({
 
     if (data.plainPassword) {
       setCredentials({
-        username: data.createdUsername ?? data.user?.username ?? form.username,
+        username: data.createdUsername ?? sanitizeUsername(form.minecraft_pseudo),
         password: data.plainPassword,
       });
     }
@@ -184,16 +157,11 @@ export function AdminMembersClient({
   function resetForm() {
     setEditingId(null);
     setEditingMember(null);
-    usernameTouched.current = false;
     setForm({
       faction_id: defaultFactionId || factions[0]?.id || "",
       minecraft_pseudo: "",
-      username: "",
-      password: "",
-      generatePassword: true,
       role_id: roles[0]?.id ?? "",
       metier_id: "",
-      notes: "",
       createAccount: false,
     });
   }
@@ -201,16 +169,11 @@ export function AdminMembersClient({
   function startEdit(m: FactionMemberWithRelations) {
     setEditingId(m.id);
     setEditingMember(m);
-    usernameTouched.current = true;
     setForm({
       faction_id: m.faction_id,
       minecraft_pseudo: m.minecraft_pseudo,
-      username: m.user?.username ?? sanitizeUsername(m.minecraft_pseudo),
-      password: "",
-      generatePassword: true,
       role_id: m.role_id,
       metier_id: m.metier_id ?? "",
-      notes: m.notes ?? "",
       createAccount: !m.user_id,
     });
   }
@@ -261,9 +224,6 @@ export function AdminMembersClient({
     setTimeout(() => setCopied(false), 2000);
   }
 
-  const showAccountFields =
-    isSuperAdmin &&
-    (!editingId || (editingMember && !editingMember.user_id));
   const canChangeFaction = isSuperAdmin;
   const showPlayerForm = canCreatePlayers || editingId;
 
@@ -349,55 +309,6 @@ export function AdminMembersClient({
                 />
               </div>
 
-              {showAccountFields && (
-                <>
-                  <div className="space-y-2">
-                    <Label>Login</Label>
-                    <Input
-                      value={form.username}
-                      onChange={(e) => {
-                        usernameTouched.current = true;
-                        setForm((f) => ({ ...f, username: e.target.value }));
-                      }}
-                      required
-                      minLength={3}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Mot de passe</Label>
-                    <Input
-                      type="text"
-                      value={form.password}
-                      onChange={(e) =>
-                        setForm((f) => ({ ...f, password: e.target.value }))
-                      }
-                      disabled={form.generatePassword}
-                      required={!form.generatePassword}
-                      minLength={6}
-                      placeholder={
-                        form.generatePassword ? "Généré automatiquement" : ""
-                      }
-                    />
-                  </div>
-                  <div className="flex items-center gap-2 pt-6">
-                    <Checkbox
-                      id="generatePassword"
-                      checked={form.generatePassword}
-                      onCheckedChange={(c) =>
-                        setForm((f) => ({
-                          ...f,
-                          generatePassword: c === true,
-                          password: "",
-                        }))
-                      }
-                    />
-                    <Label htmlFor="generatePassword" className="cursor-pointer">
-                      Générer le mot de passe
-                    </Label>
-                  </div>
-                </>
-              )}
-
               <div className="space-y-2">
                 <Label>Rôle</Label>
                 <Select
@@ -417,15 +328,6 @@ export function AdminMembersClient({
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Notes</Label>
-                <Input
-                  value={form.notes}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, notes: e.target.value }))
-                  }
-                />
               </div>
             </div>
 
@@ -487,7 +389,6 @@ export function AdminMembersClient({
                       <div className="flex items-center gap-2">
                         <UserAvatar
                           username={m.user?.username ?? m.minecraft_pseudo}
-                          avatarUrl={m.user?.avatar_url}
                           size="sm"
                         />
                         <div>

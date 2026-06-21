@@ -95,7 +95,7 @@ async function getMemberWithRelations(
       faction:factions(*),
       role:roles(*),
       metier:metiers(*),
-      user:users(id, username, is_active, avatar_url)
+      user:users(id, username, is_active)
     `
     )
     .eq("user_id", userId)
@@ -164,7 +164,6 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
     username: user.username,
     is_super_admin: user.is_super_admin,
     must_change_password: user.must_change_password,
-    avatar_url: user.avatar_url ?? null,
     member,
     permissions,
   };
@@ -217,7 +216,6 @@ export async function loginUser(
       username: user.username,
       is_super_admin: user.is_super_admin,
       must_change_password: user.must_change_password,
-      avatar_url: user.avatar_url ?? null,
       member,
       permissions,
     },

@@ -18,7 +18,6 @@ export interface User {
   is_super_admin: boolean;
   is_active: boolean;
   must_change_password: boolean;
-  avatar_url: string | null;
   created_at: string;
   created_by: string | null;
 }
@@ -62,7 +61,6 @@ export interface FactionMember {
   role_id: string;
   metier_id: string | null;
   metier_level: number;
-  notes: string | null;
   tache_changed_at?: string | null;
   tache_change_allowed_at?: string | null;
   created_at: string;
@@ -73,7 +71,7 @@ export interface FactionMemberWithRelations extends FactionMember {
   faction?: Faction;
   role?: Role;
   metier?: Metier | null;
-  user?: Pick<User, "id" | "username" | "is_active" | "avatar_url"> | null;
+  user?: Pick<User, "id" | "username" | "is_active"> | null;
 }
 
 export interface SessionUser {
@@ -81,7 +79,6 @@ export interface SessionUser {
   username: string;
   is_super_admin: boolean;
   must_change_password: boolean;
-  avatar_url: string | null;
   member?: FactionMemberWithRelations | null;
   permissions: PermissionKey[];
 }
@@ -95,7 +92,7 @@ export interface FactionStats {
 
 export const ALL_PERMISSIONS: { key: PermissionKey; label: string }[] = [
   { key: "members.view", label: "Voir la liste des membres" },
-  { key: "members.edit", label: "Modifier pseudo, notes, métier" },
+  { key: "members.edit", label: "Modifier pseudo, métier" },
   { key: "members.invite", label: "Ajouter un membre" },
   { key: "members.kick", label: "Retirer un membre" },
   { key: "roles.view", label: "Voir les rôles" },
@@ -201,7 +198,6 @@ export interface MemberMachine {
   member_id: string;
   machine_id: string;
   quantity: number;
-  notes: string | null;
   created_at: string;
   updated_at: string;
   machine?: Machine;

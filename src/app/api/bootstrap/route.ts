@@ -19,7 +19,7 @@ const memberSelect = `
   faction:factions(*),
   role:roles(*),
   metier:metiers(*),
-  user:users(id, username, is_active, avatar_url)
+  user:users(id, username, is_active)
 `;
 
 export async function GET(request: Request) {

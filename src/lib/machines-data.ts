@@ -46,9 +46,24 @@ export async function getMemberMachineIds(memberId: string): Promise<Set<string>
   return new Set((data ?? []).map((r) => r.machine_id));
 }
 
+export async function getMemberMachineQuantities(
+  memberId: string
+): Promise<{ machine_id: string; quantity: number }[]> {
+  const supabase = createAdminClient();
+  const { data } = await supabase
+    .from("member_machines")
+    .select("machine_id, quantity")
+    .eq("member_id", memberId);
+
+  return (data ?? []).map((r) => ({
+    machine_id: r.machine_id,
+    quantity: r.quantity,
+  }));
+}
+
 export type RegistryEntry = {
   member: FactionMemberWithRelations;
-  machines: { machine: Machine; quantity: number; notes: string | null }[];
+  machines: { machine: Machine; quantity: number }[];
 };
 
 export function buildMachineRegistry(
@@ -62,7 +77,6 @@ export function buildMachineRegistry(
     const item = {
       machine: row.machine,
       quantity: row.quantity,
-      notes: row.notes,
     };
     if (existing) {
       existing.machines.push(item);

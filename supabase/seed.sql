@@ -1,7 +1,7 @@
 -- Seed: permissions
 INSERT INTO permissions (key, label) VALUES
   ('members.view', 'Voir la liste des membres'),
-  ('members.edit', 'Modifier pseudo, notes, métier'),
+  ('members.edit', 'Modifier pseudo, métier'),
   ('members.invite', 'Ajouter un membre'),
   ('members.kick', 'Retirer un membre'),
   ('roles.view', 'Voir les rôles'),

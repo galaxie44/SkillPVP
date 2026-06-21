@@ -4,7 +4,7 @@ import { canViewFactionPage } from "@/lib/permissions";
 import {
   getAllMachines,
   getAllMemberMachines,
-  getMemberMachineIds,
+  getMemberMachineQuantities,
 } from "@/lib/machines-data";
 
 export async function GET() {
@@ -23,14 +23,14 @@ export async function GET() {
       getAllMemberMachines(),
     ]);
 
-    const myMachineIds = user.member
-      ? Array.from(await getMemberMachineIds(user.member.id))
+    const myMachines = user.member
+      ? await getMemberMachineQuantities(user.member.id)
       : [];
 
     return NextResponse.json({
       machines,
       ownerships,
-      my_machine_ids: myMachineIds,
+      my_machines: myMachines,
     });
   } catch (err) {
     return NextResponse.json(

@@ -44,7 +44,7 @@ async function _getAllMembersUncached(): Promise<FactionMemberWithRelations[]> {
       faction:factions(*),
       role:roles(*),
       metier:metiers(*),
-      user:users(id, username, is_active, avatar_url)
+      user:users(id, username, is_active)
     `
     )
     .order("minecraft_pseudo");
@@ -76,7 +76,7 @@ export async function getFactionStats(
       faction:factions(*),
       role:roles(*),
       metier:metiers(*),
-      user:users(id, username, is_active, avatar_url)
+      user:users(id, username, is_active)
     `
     )
     .eq("faction_id", faction.id)
