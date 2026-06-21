@@ -96,7 +96,6 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
   const activitiesFetchedAt = useRef(0);
   const objectivesFetchedAt = useRef(0);
   const objectivesSlugRef = useRef<string | null>(null);
-  const membersSlugRef = useRef<string | null>(null);
 
   const applyBootstrap = useCallback((data: Record<string, unknown>) => {
     if (data.factions) {
@@ -215,12 +214,9 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
         !objectivesFetchedAt.current ||
         Date.now() - objectivesFetchedAt.current >= OBJECTIVES_TTL_MS ||
         objectivesSlugRef.current !== factionSlug;
-      const membersFactionChanged =
-        factionSlug !== null && membersSlugRef.current !== factionSlug;
 
       const include: string[] = [];
-      if (needsMembers && (membersStale || metaStale || membersFactionChanged))
-        include.push("members");
+      if (needsMembers && (membersStale || metaStale)) include.push("members");
       else if (metaStale) include.push("members");
       if (needsActivities && activitiesStale) include.push("activities");
       if (factionSlug && objectivesStale) include.push("objectives");
@@ -244,9 +240,6 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
         applyBootstrap(await res.json());
         if (factionSlug) {
           objectivesSlugRef.current = factionSlug;
-          if (include.includes("members")) {
-            membersSlugRef.current = factionSlug;
-          }
         }
       }
 

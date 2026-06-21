@@ -52,22 +52,18 @@ export async function GET(request: Request) {
 
     if (canView) {
       const supabase = createAdminClient();
-      const viewSlug = searchParams.get("faction_slug");
-      const viewFaction = viewSlug
-        ? factions.find((f) => f.slug === viewSlug)
-        : null;
-
       let query = supabase
         .from("faction_members")
         .select(memberSelect)
         .order("minecraft_pseudo");
 
-      if (user.is_super_admin) {
-        if (viewFaction) query = query.eq("faction_id", viewFaction.id);
-      } else if (viewFaction && canViewFactionPage(user)) {
-        query = query.eq("faction_id", viewFaction.id);
-      } else if (user.member?.faction_id) {
-        query = query.eq("faction_id", user.member.faction_id);
+      // Liste complète pour le cache global : le filtre par faction se fait côté UI.
+      // Sinon, visiter /factions/v1 ou v2 ne laisse que ces joueurs en mémoire
+      // (dashboard, admin joueurs, etc. affichent alors les mauvaises personnes).
+      if (!user.is_super_admin && !canViewFactionPage(user)) {
+        if (user.member?.faction_id) {
+          query = query.eq("faction_id", user.member.faction_id);
+        }
       }
 
       const { data } = await query;

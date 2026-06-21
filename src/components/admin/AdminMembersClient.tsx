@@ -53,7 +53,13 @@ export function AdminMembersClient({
 }: AdminMembersClientProps) {
   const { factions, metiers, refreshMembers } = useAppData();
   const { confirm } = useConfirm();
-  const { members, isLive } = useLiveMembers();
+  const { members: allMembers, isLive } = useLiveMembers();
+
+  const members = isSuperAdmin
+    ? allMembers
+    : defaultFactionId
+      ? allMembers.filter((m) => m.faction_id === defaultFactionId)
+      : allMembers;
   const [roles, setRoles] = useState<Role[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingMember, setEditingMember] = useState<FactionMemberWithRelations | null>(null);
