@@ -184,7 +184,7 @@ export function FactionDetailClient({ slug, user }: FactionDetailClientProps) {
   return (
     <div className="space-y-8">
       <div className="flex flex-wrap items-center gap-4">
-        <h1 className="text-3xl font-bold">{faction.name}</h1>
+        <h1 className="text-2xl font-bold sm:text-3xl">{faction.name}</h1>
         {isReadOnly && (
           <Badge variant="outline" className="border-amber-500/50 text-amber-600">
             Lecture seule

@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { FactionMemberWithRelations } from "@/types";
+import { formatAccountCredentialsText } from "@/lib/utils";
 
 interface User {
   id: string;
@@ -42,6 +43,7 @@ export function AdminUsersClient() {
   const [mustChange, setMustChange] = useState(true);
   const [linkMemberId, setLinkMemberId] = useState("");
   const [createdPassword, setCreatedPassword] = useState<string | null>(null);
+  const [createdUsername, setCreatedUsername] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -63,6 +65,7 @@ export function AdminUsersClient() {
     e.preventDefault();
     setError("");
     setCreatedPassword(null);
+    setCreatedUsername(null);
     setLoading(true);
 
     const res = await fetch("/api/users", {
@@ -86,6 +89,7 @@ export function AdminUsersClient() {
     }
 
     setCreatedPassword(data.plainPassword);
+    setCreatedUsername(data.user?.username ?? username);
     setUsername("");
     setPassword("");
     setLinkMemberId("");
@@ -128,11 +132,12 @@ export function AdminUsersClient() {
   }
 
   function copyPassword() {
-    if (createdPassword) {
-      navigator.clipboard.writeText(createdPassword);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
+    if (!createdPassword || !createdUsername) return;
+    navigator.clipboard.writeText(
+      formatAccountCredentialsText(createdUsername, createdPassword)
+    );
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   }
 
   const unlinkedMembers = members.filter((m) => !m.user_id);
@@ -242,8 +247,59 @@ export function AdminUsersClient() {
           <CardTitle>Comptes existants ({users.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="overflow-hidden rounded-lg border border-border">
-            <table className="w-full text-sm">
+          {/* Vue cartes — mobile / tablette */}
+          <div className="space-y-3 lg:hidden">
+            {users.map((u) => (
+              <div
+                key={u.id}
+                className="rounded-lg border border-border p-4"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <p className="font-medium">{u.username}</p>
+                    {u.is_super_admin && (
+                      <Badge className="mt-1" variant="secondary">
+                        Super Admin
+                      </Badge>
+                    )}
+                  </div>
+                  <Badge variant={u.is_active ? "default" : "outline"}>
+                    {u.is_active ? "Actif" : "Désactivé"}
+                  </Badge>
+                </div>
+                {!u.is_super_admin && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleReset(u.id)}
+                    >
+                      <RefreshCw className="mr-1 h-3 w-3" />
+                      Reset mdp
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleToggleActive(u.id, u.is_active)}
+                    >
+                      {u.is_active ? "Désactiver" : "Activer"}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => handleDelete(u.id)}
+                    >
+                      Supprimer
+                    </Button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Vue tableau — desktop */}
+          <div className="hidden overflow-x-auto rounded-lg border border-border lg:block">
+            <table className="w-full min-w-[500px] text-sm">
               <thead className="bg-muted/50">
                 <tr>
                   <th className="px-4 py-3 text-left">Username</th>

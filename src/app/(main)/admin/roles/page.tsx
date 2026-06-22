@@ -16,7 +16,7 @@ export default async function AdminRolesPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-3xl font-bold">Gestion des rôles</h1>
+      <h1 className="text-2xl font-bold sm:text-3xl">Gestion des rôles</h1>
       <p className="text-muted-foreground">
         Rôles système (Recrue, Membre, AdminFaction) et rôles custom avec permissions
       </p>

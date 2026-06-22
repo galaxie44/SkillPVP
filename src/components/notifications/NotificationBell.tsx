@@ -35,6 +35,13 @@ export function NotificationBell() {
     if (!btn) return;
     const rect = btn.getBoundingClientRect();
     const margin = 8;
+    const isMobile = window.innerWidth < 640;
+
+    if (isMobile) {
+      setPanelStyle({ top: rect.bottom + margin, left: margin });
+      return;
+    }
+
     let left = rect.right + margin;
     if (left + PANEL_WIDTH > window.innerWidth - margin) {
       left = rect.left - PANEL_WIDTH - margin;
@@ -89,7 +96,7 @@ export function NotificationBell() {
               aria-hidden
             />
             <div
-              className="fixed z-[210] w-80 max-w-[calc(100vw-1rem)] rounded-xl border border-border bg-card shadow-xl"
+              className="fixed z-[210] w-[calc(100vw-2rem)] max-w-80 rounded-xl border border-border bg-card shadow-xl sm:w-80"
               style={{ top: panelStyle.top, left: panelStyle.left }}
             >
               <div className="flex items-center justify-between border-b border-border px-4 py-3">

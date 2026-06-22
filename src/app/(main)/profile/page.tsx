@@ -9,7 +9,7 @@ export default async function ProfilePage() {
 
   return (
     <>
-      <h1 className="mb-6 text-3xl font-bold">Profil</h1>
+      <h1 className="mb-6 text-2xl font-bold sm:text-3xl">Profil</h1>
       <Suspense>
         <ProfileClient user={user} />
       </Suspense>

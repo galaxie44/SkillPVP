@@ -25,3 +25,19 @@ export function sanitizeUsername(raw: string): string {
     ? cleaned.slice(0, 32)
     : `user_${cleaned || "mc"}`.slice(0, 32);
 }
+
+export function getLoginUrl(siteUrl?: string): string {
+  const base =
+    siteUrl ??
+    (typeof window !== "undefined" ? window.location.origin : "");
+  if (!base) return "/login";
+  return `${base.replace(/\/$/, "")}/login`;
+}
+
+export function formatAccountCredentialsText(
+  username: string,
+  password: string,
+  siteUrl?: string
+): string {
+  return `Site: ${getLoginUrl(siteUrl)}\nLogin: ${username}\nMot de passe: ${password}`;
+}

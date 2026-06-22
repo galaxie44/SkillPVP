@@ -599,7 +599,7 @@ export function ObjectivesPanel({
                               item_name: e.target.value,
                             }))
                           }
-                          className="max-w-[160px]"
+                          className="w-full sm:max-w-[160px]"
                         />
                       )}
                       <Input
@@ -611,7 +611,7 @@ export function ObjectivesPanel({
                             target_quantity: e.target.value,
                           }))
                         }
-                        className="max-w-[100px]"
+                        className="w-full sm:max-w-[100px]"
                         placeholder="Objectif"
                       />
                       {isMetier && (
@@ -624,7 +624,7 @@ export function ObjectivesPanel({
                               approved_quantity: e.target.value,
                             }))
                           }
-                          className="max-w-[100px]"
+                          className="w-full sm:max-w-[100px]"
                           placeholder="Niveau actuel"
                         />
                       )}
@@ -705,7 +705,7 @@ export function ObjectivesPanel({
                   </div>
 
                   {canManageObj(obj) && isMetier && !complete && !isEditing && (
-                    <div className="mt-3 flex gap-2">
+                    <div className="mt-3 flex flex-col gap-2 sm:flex-row">
                       <Input
                         type="number"
                         min={0}
@@ -718,7 +718,7 @@ export function ObjectivesPanel({
                             [obj.id]: e.target.value,
                           }))
                         }
-                        className="max-w-[180px]"
+                        className="w-full sm:max-w-[180px]"
                       />
                       <Button size="sm" onClick={() => handleSetLevel(obj.id)}>
                         Mettre à jour le niveau
@@ -727,7 +727,7 @@ export function ObjectivesPanel({
                   )}
 
                   {canSubmitOn(obj) && !complete && !isMetier && (
-                    <div className="mt-3 flex gap-2">
+                    <div className="mt-3 flex flex-col gap-2 sm:flex-row">
                       <Input
                         type="number"
                         min={1}

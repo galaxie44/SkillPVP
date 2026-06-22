@@ -41,15 +41,15 @@ export function MetierTable({ members, factions, metiers, highlightedIds }: Meti
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
         <Input
           placeholder="Rechercher un pseudo..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="max-w-xs"
+          className="w-full sm:max-w-xs"
         />
         <Select value={factionFilter} onValueChange={setFactionFilter}>
-          <SelectTrigger className="w-[160px]">
+          <SelectTrigger className="w-full sm:w-[160px]">
             <SelectValue placeholder="Faction" />
           </SelectTrigger>
           <SelectContent>
@@ -62,7 +62,7 @@ export function MetierTable({ members, factions, metiers, highlightedIds }: Meti
           </SelectContent>
         </Select>
         <Select value={metierFilter} onValueChange={setMetierFilter}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-full sm:w-[180px]">
             <SelectValue placeholder="Tâche" />
           </SelectTrigger>
           <SelectContent>
@@ -77,8 +77,42 @@ export function MetierTable({ members, factions, metiers, highlightedIds }: Meti
         </Select>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-white/5">
-        <table className="w-full text-sm">
+      {/* Vue cartes — mobile / tablette */}
+      <div className="space-y-2 lg:hidden">
+        {filtered.length === 0 ? (
+          <p className="rounded-xl border border-white/5 px-4 py-8 text-center text-sm text-muted-foreground">
+            Aucun membre trouvé
+          </p>
+        ) : (
+          filtered.map((m) => (
+            <div
+              key={m.id}
+              className={cn(
+                "rounded-xl border border-white/5 p-4 transition-colors",
+                highlightedIds?.has(m.id) && "row-highlight"
+              )}
+            >
+              <p className="font-medium">{m.minecraft_pseudo}</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <Badge variant="outline">{m.faction?.name}</Badge>
+                <Badge variant="secondary">
+                  {m.metier?.name ?? "Aucune tâche"}
+                </Badge>
+                <Badge variant="outline">{m.role?.name}</Badge>
+              </div>
+              {m.user?.username && (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Compte : {m.user.username}
+                </p>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Vue tableau — desktop */}
+      <div className="hidden overflow-x-auto rounded-xl border border-white/5 lg:block">
+        <table className="w-full min-w-[640px] text-sm">
           <thead className="bg-white/5">
             <tr>
               <th className="px-4 py-3 text-left font-medium">Pseudo MC</th>
@@ -123,6 +157,7 @@ export function MetierTable({ members, factions, metiers, highlightedIds }: Meti
           </tbody>
         </table>
       </div>
+
       <p className="text-xs text-muted-foreground">
         {filtered.length} membre{filtered.length !== 1 ? "s" : ""} affiché
         {filtered.length !== 1 ? "s" : ""}

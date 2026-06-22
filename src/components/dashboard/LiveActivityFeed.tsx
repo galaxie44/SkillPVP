@@ -51,7 +51,7 @@ export function LiveActivityFeed({ activities }: LiveActivityFeedProps) {
         <Activity className="h-4 w-4 text-primary" />
         <h3 className="font-semibold">Activité en direct</h3>
       </div>
-      <div className="flex-1 overflow-y-auto p-3" style={{ maxHeight: 420 }}>
+      <div className="max-h-[min(420px,50vh)] flex-1 overflow-y-auto p-3 lg:max-h-[420px]">
         {activities.length === 0 ? (
           <p className="py-8 text-center text-sm text-muted-foreground">
             Aucune activité récente

@@ -25,7 +25,7 @@ import type {
   FactionMemberWithRelations,
   Metier,
 } from "@/types";
-import { sanitizeUsername } from "@/lib/utils";
+import { sanitizeUsername, formatAccountCredentialsText, getLoginUrl } from "@/lib/utils";
 import { TacheCardPicker } from "@/components/metiers/TacheCardPicker";
 import { getMetierIcon, METIER_COLORS } from "@/lib/metiers";
 import { useLiveMembers } from "@/hooks/useLiveMembers";
@@ -243,7 +243,7 @@ export function AdminMembersClient({
   async function copyCredentials() {
     if (!credentials) return;
     await navigator.clipboard.writeText(
-      `Login: ${credentials.username}\nMot de passe: ${credentials.password}`
+      formatAccountCredentialsText(credentials.username, credentials.password)
     );
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -265,6 +265,10 @@ export function AdminMembersClient({
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
+            <p className="text-sm">
+              <span className="text-muted-foreground">Site :</span>{" "}
+              <strong className="break-all">{getLoginUrl()}</strong>
+            </p>
             <p className="text-sm">
               <span className="text-muted-foreground">Login :</span>{" "}
               <strong>{credentials.username}</strong>
@@ -416,8 +420,108 @@ export function AdminMembersClient({
           <CardTitle>Joueurs ({members.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="overflow-hidden rounded-lg border border-border">
-            <table className="w-full text-sm">
+          {/* Vue cartes — mobile / tablette */}
+          <div className="space-y-3 lg:hidden">
+            {members.map((m) => (
+              <div
+                key={m.id}
+                className="rounded-lg border border-border p-4"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <UserAvatar
+                      username={m.user?.username ?? m.minecraft_pseudo}
+                      size="sm"
+                    />
+                    <div className="min-w-0">
+                      <p className="truncate font-medium">{m.minecraft_pseudo}</p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {m.user?.username ?? "—"}
+                      </p>
+                    </div>
+                  </div>
+                  {m.user ? (
+                    <Badge variant={m.user.is_active ? "default" : "outline"}>
+                      {m.user.is_active ? "Actif" : "Désactivé"}
+                    </Badge>
+                  ) : (
+                    <Badge
+                      variant="outline"
+                      className="shrink-0 border-destructive text-destructive"
+                    >
+                      Sans compte
+                    </Badge>
+                  )}
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Badge variant="outline">{m.faction?.name}</Badge>
+                  {m.metier ? (
+                    <Badge variant="secondary" className="gap-1">
+                      {(() => {
+                        const Icon = getMetierIcon(m.metier.name);
+                        const color = METIER_COLORS[m.metier.name] ?? "#6b7280";
+                        return (
+                          <>
+                            <Icon className="h-3 w-3" style={{ color }} />
+                            {m.metier.name}
+                          </>
+                        );
+                      })()}
+                    </Badge>
+                  ) : (
+                    <span className="text-sm text-muted-foreground">—</span>
+                  )}
+                  <Badge variant="outline">{m.role?.name}</Badge>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-1">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    title="Modifier"
+                    onClick={() => startEdit(m)}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  {m.user && (
+                    <>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        title="Réinitialiser le mot de passe"
+                        onClick={() => handleResetPassword(m.id)}
+                      >
+                        <RefreshCw className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        title={m.user.is_active ? "Désactiver" : "Activer"}
+                        onClick={() =>
+                          handleToggleActive(m.id, m.user!.is_active)
+                        }
+                      >
+                        <span className="text-xs font-bold">
+                          {m.user.is_active ? "OFF" : "ON"}
+                        </span>
+                      </Button>
+                    </>
+                  )}
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    title="Supprimer"
+                    onClick={() => handleDelete(m.id)}
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Vue tableau — desktop */}
+          <div className="hidden overflow-x-auto rounded-lg border border-border lg:block">
+            <table className="w-full min-w-[800px] text-sm">
               <thead className="bg-muted/50">
                 <tr>
                   <th className="px-4 py-3 text-left">Joueur</th>

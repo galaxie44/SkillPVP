@@ -10,6 +10,7 @@ import {
   Swords,
   User,
   Cog,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -22,9 +23,11 @@ import type { Faction, SessionUser } from "@/types";
 interface SidebarProps {
   user: SessionUser;
   factions: Faction[];
+  className?: string;
+  onNavigate?: () => void;
 }
 
-export function Sidebar({ user, factions }: SidebarProps) {
+export function Sidebar({ user, factions, className, onNavigate }: SidebarProps) {
   const pathname = usePathname();
 
   const mainLinks = [
@@ -69,11 +72,29 @@ export function Sidebar({ user, factions }: SidebarProps) {
   }
 
   return (
-    <aside className="flex h-full w-64 shrink-0 flex-col border-r border-border bg-card/40 backdrop-blur-xl">
+    <aside
+      className={cn(
+        "flex h-full w-64 shrink-0 flex-col border-r border-border bg-card/40 backdrop-blur-xl",
+        className
+      )}
+    >
       <div className="border-b border-border p-6">
-        <h1 className="text-xl font-bold">
-          <span className="gradient-text">SkillPVP</span>
-        </h1>
+        <div className="flex items-start justify-between gap-2">
+          <h1 className="text-xl font-bold">
+            <span className="gradient-text">SkillPVP</span>
+          </h1>
+          {onNavigate && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="shrink-0 lg:hidden"
+              onClick={onNavigate}
+              aria-label="Fermer le menu"
+            >
+              <X className="h-5 w-5" />
+            </Button>
+          )}
+        </div>
         <div className="mt-3 flex items-center gap-3">
           <UserAvatar username={user.username} size="sm" />
           <div className="min-w-0 flex-1">
@@ -89,7 +110,9 @@ export function Sidebar({ user, factions }: SidebarProps) {
               </span>
             )}
           </div>
-          <NotificationBell />
+          <div className="hidden lg:block">
+            <NotificationBell />
+          </div>
         </div>
       </div>
 
@@ -102,6 +125,7 @@ export function Sidebar({ user, factions }: SidebarProps) {
             <Link
               key={link.href}
               href={link.href}
+              onClick={onNavigate}
               className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
                 active

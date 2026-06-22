@@ -30,7 +30,7 @@ export default async function AdminMembersPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-3xl font-bold">Gestion des joueurs</h1>
+      <h1 className="text-2xl font-bold sm:text-3xl">Gestion des joueurs</h1>
       <p className="text-muted-foreground">
         Chaque joueur a un compte de connexion et appartient à une faction (v1 ou v2).
         {user.is_super_admin

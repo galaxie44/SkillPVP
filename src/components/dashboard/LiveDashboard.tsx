@@ -78,7 +78,7 @@ export function LiveDashboard({ user }: LiveDashboardProps) {
     <div className="space-y-8 animate-fade-up">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
             <span className="gradient-text">Dashboard</span>
           </h1>
           <p className="mt-1 text-muted-foreground">
@@ -90,8 +90,8 @@ export function LiveDashboard({ user }: LiveDashboardProps) {
 
       <OnlineUsers users={onlineUsers} currentUserId={user.id} />
 
-      <div className="grid gap-6 xl:grid-cols-3">
-        <div className="space-y-6 xl:col-span-2">
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="space-y-6 lg:col-span-2">
           <div className="grid gap-6 md:grid-cols-2">
             {factionStats.map((stats) => (
               <FactionCard key={stats.faction.id} stats={stats} />

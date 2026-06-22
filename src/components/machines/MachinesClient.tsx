@@ -148,7 +148,7 @@ export function MachinesClient({ user }: MachinesClientProps) {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold">Machines</h1>
+        <h1 className="text-2xl font-bold sm:text-3xl">Machines</h1>
         <p className="mt-1 text-muted-foreground">
           Déclare tes machines — visible par les factions v1 et v2
         </p>
@@ -286,7 +286,7 @@ export function MachinesClient({ user }: MachinesClientProps) {
               />
             </div>
             <Select value={factionFilter} onValueChange={setFactionFilter}>
-              <SelectTrigger className="w-[160px]">
+              <SelectTrigger className="w-full sm:w-[160px]">
                 <SelectValue placeholder="Faction" />
               </SelectTrigger>
               <SelectContent>
@@ -296,7 +296,7 @@ export function MachinesClient({ user }: MachinesClientProps) {
               </SelectContent>
             </Select>
             <Select value={machineFilter} onValueChange={setMachineFilter}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="Machine" />
               </SelectTrigger>
               <SelectContent>

@@ -1,4 +1,4 @@
-import { Sidebar } from "@/components/layout/Sidebar";
+import { ResponsiveShell } from "@/components/layout/ResponsiveShell";
 import { AppProviders } from "@/components/layout/AppProviders";
 import { getSessionUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
@@ -18,17 +18,11 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <ToastProvider>
       <ConfirmProvider>
-        <div className="flex h-screen overflow-hidden">
-          <Sidebar user={user} factions={factions} />
-          <main className="flex-1 overflow-y-auto p-8">
-            <AppProviders
-              initialFactions={factions}
-              initialMetiers={metiers}
-            >
-              {children}
-            </AppProviders>
-          </main>
-        </div>
+        <ResponsiveShell user={user} factions={factions}>
+          <AppProviders initialFactions={factions} initialMetiers={metiers}>
+            {children}
+          </AppProviders>
+        </ResponsiveShell>
       </ConfirmProvider>
     </ToastProvider>
   );
